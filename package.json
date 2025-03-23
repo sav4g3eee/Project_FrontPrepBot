@@ -1,0 +1,19 @@
+{
+  "name": "frontend-prep-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
+  },
+  "author": "sav4g3eee",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "git": "^0.1.5",
+    "grammy": "^1.35.0",
+    "nodemon": "^3.1.9",
+    "random-js": "^2.1.0"
+  }
+}
