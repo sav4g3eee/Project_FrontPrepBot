@@ -7,7 +7,7 @@ const {
     HttpError 
 } = require('grammy');
 
-const { getRandomQuestion } = require('./utils');
+const { getRandomQuestion, getCorrectAnswer } = require('./utils');
 
 const bot = new Bot(process.env.BOT_API_KEY);
 
@@ -18,6 +18,8 @@ bot.command('start', async (ctx) => {
     .row()
     .text('JavaScript')
     .text('React')
+    .row()
+    .text('Случайный вопрос')
     .resized();
 
     await ctx.reply(
@@ -29,9 +31,9 @@ bot.command('start', async (ctx) => {
     })
 });
 
-bot.hears(['HTML', 'CSS', 'JavaScript', 'React'], async (ctx) => {
-    const topic = ctx.message.text;
-    const question = getRandomQuestion(topic);
+bot.hears(['HTML', 'CSS', 'JavaScript', 'React', 'Случайный вопрос'], async (ctx) => {
+    const topic = ctx.message.text.toLowerCase();
+    const { question, questionTopic } = getRandomQuestion(topic);
 
     let inlineKeyboard;
 
@@ -40,7 +42,7 @@ bot.hears(['HTML', 'CSS', 'JavaScript', 'React'], async (ctx) => {
             InlineKeyboard.text(
                 option.text, 
                 JSON.stringify({
-                type: `${topic}-option`,
+                type: `${questionTopic}-option`,
                 isCorrect: option.isCorrect,
                 questionId: question.id,
             }),
@@ -51,7 +53,7 @@ bot.hears(['HTML', 'CSS', 'JavaScript', 'React'], async (ctx) => {
     } else {
         inlineKeyboard = new InlineKeyboard().text(
             'Узнать ответ', JSON.stringify({
-            type: ctx.message.text,
+            type: questionTopic,
             questionId: question.id,
         }))
     }
@@ -62,15 +64,28 @@ bot.hears(['HTML', 'CSS', 'JavaScript', 'React'], async (ctx) => {
 });
 
 bot.on('callback_query:data', async (ctx) => {
-    if (ctx.callbackQuery.data === 'Cancel') {
-        await ctx.reply('Отменено')
+    const callbackData = JSON.parse(ctx.callbackQuery.data);
+
+    if (!callbackData.type.includes('option')) {
+        const answer = getCorrectAnswer(callbackData.type, callbackData.questionId); 
+        await ctx.reply(answer, {
+            parse_mode: 'HTML',
+            disable_web_page_preview: true,
+        });
+        await ctx.answerCallbackQuery();
+    return;
+    }
+
+    if (callbackData.isCorrect) {
+        await ctx.reply('Верно');
         await ctx.answerCallbackQuery();
         return;
     }
 
-    const callbackData = JSON.parse(ctx.callbackQuery.data);
-    await ctx.reply(`${callbackData.type} - составляющая фронтенда`)
-    await ctx.answerCallbackQuery();    
+    const answer = getCorrectAnswer(callbackData.type.split('-')[0], callbackData.questionId);
+    await ctx.reply(`Неверно Правильный ответ: ${answer}`);
+    await ctx.answerCallbackQuery(); 
+
 })
 
 bot.catch((err) => {
